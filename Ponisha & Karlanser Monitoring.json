@@ -1,0 +1,616 @@
+{
+  "name": "Ponisha & Karlanser Monitoring",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        80
+      ],
+      "id": "b7450e79-6925-44af-a8be-e68b034b3e15",
+      "name": "Schedule Trigger6"
+    },
+    {
+      "parameters": {
+        "chatId": "=1414522812",
+        "text": "=🚨 پروژه جدید n8n اومد!\n\n📌 {{$json.title}}\n\n📝 {{$json.description}}\n\n💰 {{$json.budget}}  \n🗓 منتشر شده: {{$json.published}}  \n📍 منبع: {{$json.source}}\n",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Project Link",
+                    "additionalFields": {
+                      "url": "={{$json.link}}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1264,
+        80
+      ],
+      "id": "122211a8-c1c6-4761-9769-7328abf2461a",
+      "name": "Send a text message6",
+      "webhookId": "73c7a822-a45f-49af-96bf-9fb9440bdcb7",
+      "credentials": {
+        "telegramApi": {
+          "id": "NZIjA7DArBJocQYF",
+          "name": "Telegram account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Ponisha Projects Monitoring ",
+        "height": 256,
+        "width": 1888,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "49fa6b90-94e6-4740-9cd0-f38b9f383d53",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// نود Code – مستقیم بعد از HTTP Request پونیشا (بدون هیچ فیلتر)\nconst html = $input.first().json.data || $input.first().json.body;\n\nif (!html || typeof html !== 'string') {\n  return [{ json: { error: 'HTML دریافت نشد' } }];\n}\n\n// استخراج __NEXT_DATA__\nconst match = html.match(/<script id=\"__NEXT_DATA__\" type=\"application\\/json\">([\\s\\S]*?)<\\/script>/);\nif (!match) {\n  return [{ json: { error: '__NEXT_DATA__ پیدا نشد' } }];\n}\n\nlet nextData;\ntry {\n  nextData = JSON.parse(match[1]);\n} catch (e) {\n  return [{ json: { error: 'پارس JSON شکست', details: e.message } }];\n}\n\n// مسیر دقیق از فایل تو (تست شده روی فایل Untitled.json)\nconst queries = nextData.props?.pageProps?.initialState?.queries || nextData.props?.pageProps?.dehydratedState?.queries;\n\nif (!queries || !Array.isArray(queries) || queries.length === 0) {\n  return [{ json: { error: 'queries پیدا نشد' } }];\n}\n\n// پیدا کردن query که کلیدش شامل \"search\",\"projects\" باشه\nconst searchQuery = queries.find(q => \n  q.queryKey && q.queryKey.some(k => typeof k === 'string' && k.includes('search')) ||\n  q.queryKey?.[0] === 'search'\n);\n\nif (!searchQuery || !searchQuery.state?.data?.data) {\n  return [{ json: { error: 'داده پروژه پیدا نشد' } }];\n}\n\nconst projects = searchQuery.state.data.data;\n\nif (!Array.isArray(projects) || projects.length === 0) {\n  return [{ json: { message: 'هیچ پروژه‌ای پیدا نشد' } }];\n}\n\n// فقط استخراج – بدون هیچ فیلتر\nreturn projects.map(p => ({\n  json: {\n    title:       p.title || 'بدون عنوان',\n    link:        `https://ponisha.ir/project/${p.id}/${p.slug}`,\n    budget:      p.amount_max === 0 \n                 ? `${(p.amount_min / 1000000).toFixed(0)} میلیون تومان به بالا`\n                 : `${(p.amount_min / 1000000).toFixed(0)} - ${(p.amount_max / 1000000).toFixed(0)} میلیون تومان`,\n    description: p.description ? p.description.substring(0, 300) + '...' : 'بدون توضیحات',\n    published:   p.approved_at ? new Date(p.approved_at).toISOString() : 'نامشخص',\n    source:      'پونیشا',\n    id:          p.id,\n    slug:        p.slug,\n    raw:         p  // برای دیباگ نگه داشتم\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        80
+      ],
+      "id": "df7e7b9d-9069-4196-a61a-b1512946dee4",
+      "name": "Parse Ponisha Projects"
+    },
+    {
+      "parameters": {
+        "jsCode": "// گرفتن اولین آیتم ورودی\nconst item = $input.first().json;\n\n// اگر چیزی نبود، خالی برگردون (بدون خطا)\nif (!item) return [];\n\n// پیدا کردن آرایه‌ها (با تحمل تغییرات کوچک در نام کلید)\nlet titles = [];\nlet links = [];\nlet budgets = [];\nlet descriptions = [];\nlet durations = [];\nlet publisheds = [];\n\nfor (const key in item) {\n  const lowerKey = key.toLowerCase().trim();\n  \n  if (lowerKey.includes(\"title\"))     titles      = item[key] || [];\n  if (lowerKey.includes(\"link\"))      links       = item[key] || [];\n  if (lowerKey.includes(\"budget\"))    budgets     = item[key] || [];\n  if (lowerKey.includes(\"description\")) descriptions = item[key] || [];\n  if (lowerKey.includes(\"duration\"))  durations   = item[key] || [];\n  if (lowerKey.includes(\"published\")) publisheds  = item[key] || [];\n}\n\n// اگر عنوان پیدا نشد → پیام مناسب\nif (!Array.isArray(titles) || titles.length === 0) {\n  return [{ json: { message: \"هیچ پروژه‌ای پیدا نشد\" } }];\n}\n\nconst result = [];\n\nfor (let i = 0; i < titles.length; i++) {\n  const title = (titles[i] || \"\").toString().trim();\n\n  result.push({\n    json: {\n      title: title,\n      link: links[i] ? \"https://karlancer.com\" + (links[i] || \"\") : \"لینک نامشخص\",\n      budget: (budgets[i] || \"نامشخص\").toString().trim(),\n      description: (descriptions[i] || \"بدون توضیحات\").toString().trim(),\n      duration: (durations[i] || \"نامشخص\").toString().trim(),\n      published: (publisheds[i] || \"نامشخص\").toString().trim(),\n      source: \"کارلنسر\"\n    }\n  });\n}\n\nreturn result.length > 0 \n  ? result \n  : [{ json: { message: \"هیچ پروژه‌ای در این لحظه موجود نیست\" } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        368
+      ],
+      "id": "d0cd4a73-d718-499f-9bec-6b5b65895052",
+      "name": "Code in JavaScript13"
+    },
+    {
+      "parameters": {
+        "chatId": "=1414522812",
+        "text": "=🚨 پروژه جدید n8n اومد!\n\n📌 {{$json.title}}\n\n📝 {{$json.description}}\n\n💰 {{$json.budget}}  \n⏰ مدت تحویل: {{$json.duration}}  \n🗓 منتشر شده: {{$json.published}}  \n📍 منبع: {{$json.source}}\n",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Project Link",
+                    "additionalFields": {
+                      "url": "={{$json.link}}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1488,
+        368
+      ],
+      "id": "8538a37c-3885-481a-ab37-9c8d84fbd113",
+      "name": "Send a text message4",
+      "webhookId": "73c7a822-a45f-49af-96bf-9fb9440bdcb7",
+      "credentials": {
+        "telegramApi": {
+          "id": "NZIjA7DArBJocQYF",
+          "name": "Telegram account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Karlancer Projects Monitoring ",
+        "height": 256,
+        "width": 2080,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -416,
+        272
+      ],
+      "typeVersion": 1,
+      "id": "e0756d65-db8e-4000-9058-15ecf2d48bba",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -304,
+        368
+      ],
+      "id": "e5a7c917-aac2-4565-af32-5048d93898eb",
+      "name": "Schedule Trigger5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f8be4ad7-e83c-48e3-bdd3-1a34abf5fa19",
+              "leftValue": "={{ $json.published }}",
+              "rightValue": "={{ $('Time (use for filtering)').item.json.publishedAfter }}",
+              "operator": {
+                "type": "dateTime",
+                "operation": "afterOrEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        80
+      ],
+      "id": "05448fb3-6aa4-4819-9e1d-1822b3374bb0",
+      "name": "Filter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.Niche;\n\n// انکود کردن عبارت جستجو برای استفاده در URL\nconst encodedQuery = encodeURIComponent(query);\n\n// ساختار پایه URL (که شامل q=... می‌شود)\nconst ponishaBaseUrl = \"https://ponisha.ir/search/projects?q=\";\n\n// باقی پارامترهای ثابت URL + پارامتر تکراری query=\nconst ponishaSuffix = `&page=1&order=approved_at%7Cdesc&category=-&promotion=-&filterByProjectStatus=open&query=${encodedQuery}`;\n\n// ترکیب برای ساخت لینک نهایی\nconst finalUrl = ponishaBaseUrl + encodedQuery + ponishaSuffix;\n\n// خروجی نود Code\nreturn [\n  {\n    json: {\n      url: finalUrl\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        80
+      ],
+      "id": "3a22f340-6196-43e4-9de6-119b6057e900",
+      "name": "Ponisha Search Url"
+    },
+    {
+      "parameters": {
+        "jsCode": "const query = $input.first().json.Niche; // خطای '$input.all()' و 'searchQuery' اصلاح شد\n\n// انکود کردن عبارت جستجو برای استفاده در URL\nconst encodedQuery = encodeURIComponent(query);\n\n// ساختار ثابت URL کارلنسر\nconst karlanserBaseUrl = \"https://www.karlancer.com/search?q=\";\n\n// ترکیب برای ساخت لینک نهایی\nconst finalUrl = karlanserBaseUrl + encodedQuery;\n\n// خروجی نود Code\nreturn [\n  {\n    json: {\n      url: finalUrl \n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        368,
+        368
+      ],
+      "id": "a5fb0c4a-3136-4804-92ed-e44b898343e6",
+      "name": "Karlancer Serach Url"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "04184ef9-1b4e-4771-babb-5f969227ae50",
+              "name": "Niche",
+              "value": "n8n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        80
+      ],
+      "id": "99e093fc-2e89-4937-826c-1fa7deb174dd",
+      "name": "Niche (Ponisha)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc16248e-e7a2-47eb-b0c3-a7b4fa8beca4",
+              "name": "Niche",
+              "value": "n8n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        144,
+        368
+      ],
+      "id": "cfc6df1e-a599-4284-ba16-96f05a33a113",
+      "name": "Niche (Karlancer)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n// $now خودش یه Luxon DateTime هست، مستقیم ازش استفاده می‌کنیم\nconst hourAgo = $now.minus({ hour: 1 });\n\n// دقیقاً همون فرمتی که YouTube API می‌خواد و $now نشون می‌ده\nconst publishedAfter = hourAgo.toISO();\n\nreturn [\n  {\n    json: {\n      publishedAfter: publishedAfter\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        80
+      ],
+      "id": "db9d54e2-2fcf-49f7-a6d7-5061d5bccd94",
+      "name": "Time (use for filtering)"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n// $now خودش یه Luxon DateTime هست، مستقیم ازش استفاده می‌کنیم\nconst thirtyMinutesAgo = $now.minus({ hours: 1 });\n\n// دقیقاً همون فرمتی که YouTube API می‌خواد و $now نشون می‌ده\nconst publishedAfter = thirtyMinutesAgo.toISO();\n\nreturn [\n  {\n    json: {\n      publishedAfter: publishedAfter\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        368
+      ],
+      "id": "9d4d9f1d-4ec8-4104-ab19-79fc65fe5dd0",
+      "name": "Time (use for filtering)1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Ponisha Scrape",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        80
+      ],
+      "id": "77e19f56-42c1-4504-baac-888f50e0021a"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {
+          "response": {
+            "response": {}
+          }
+        }
+      },
+      "name": "Karlancer Scrape",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        592,
+        368
+      ],
+      "id": "96145456-9ee8-401c-8b79-173c5cadff46"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title ",
+              "cssSelector": "h4",
+              "returnArray": true
+            },
+            {
+              "key": "link",
+              "cssSelector": "a[applinktarget]",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "description",
+              "cssSelector": "div.white-space-pre-line.fs-13",
+              "returnArray": true
+            },
+            {
+              "key": "budget",
+              "cssSelector": "div[tooltipwidth=\"250px\"] div.fs-16",
+              "returnArray": true
+            },
+            {
+              "key": "duration",
+              "cssSelector": "div[hastitlecontainer=\"false\"] div.fs-16",
+              "returnArray": true
+            },
+            {
+              "key": "published_at",
+              "cssSelector": "span.fs-13.text-nowrap.bg-39-color",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {
+          "trimValues": false,
+          "cleanUpText": false
+        }
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        816,
+        368
+      ],
+      "id": "80078885-62b4-4f53-a2d0-1b62ea558d2a",
+      "name": "Extract Project"
+    },
+    {
+      "parameters": {
+        "jsCode": "// تابع کمکی برای تبدیل اعداد فارسی به انگلیسی\nfunction toEnglishDigits(str) {\n  if (!str) return \"\";\n  const persianNumbers = [/۰/g, /۱/g, /۲/g, /۳/g, /۴/g, /۵/g, /۶/g, /۷/g, /۸/g, /۹/g];\n  const arabicNumbers  = [/٠/g, /١/g, /٢/g, /٣/g, /٤/g, /٥/g, /٦/g, /٧/g, /٨/g, /٩/g];\n  \n  let result = str;\n  for (let i = 0; i < 10; i++) {\n    result = result.replace(persianNumbers[i], i).replace(arabicNumbers[i], i);\n  }\n  return result;\n}\n\nconst items = $input.all();\nconst filteredItems = [];\n\nfor (const item of items) {\n  // اگر پیام خطای نود قبلی بود، کلا نادیده بگیر (چون می‌خواهیم دوباره چک کنیم)\n  if (item.json.message && !item.json.title) {\n     continue;\n  }\n\n  const rawPublished = item.json.published || \"\";\n  \n  // ۱. تبدیل اعداد به انگلیسی برای پردازش\n  const publishedText = toEnglishDigits(rawPublished);\n  \n  // ۲. بررسی موارد خاص (بدون عدد) مثل لحظاتی پیش\n  if (publishedText.includes(\"لحظاتی\") || publishedText.includes(\"ثانیه\")) {\n    filteredItems.push(item);\n    continue;\n  }\n  \n  // ۳. استخراج عدد و واحد زمانی\n  const match = publishedText.match(/(\\d+)\\s*(ساعت|روز|دقیقه)/);\n  \n  if (!match) {\n    continue;\n  }\n  \n  const timeValue = parseInt(match[1]); // الان که انگلیسی شده، درست کار میکنه\n  const timeUnit = match[2];\n  \n  // ۴. شرط فیلتر\n  if (timeUnit === \"دقیقه\") {\n    filteredItems.push(item);\n  } else if (timeUnit === \"ساعت\" && timeValue <= 1) {\n    filteredItems.push(item);\n  }\n}\n\n// ۵. اگر خالی بود، آرایه خالی برگردان تا نود تلگرام اصلا اجرا نشود\n// (این بهتر از فرستادن پیام \"هیچ پروژه جدیدی نیست\" به تلگرام است)\nif (filteredItems.length === 0) {\n  return []; \n}\n\nreturn filteredItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        368
+      ],
+      "id": "68afe263-6e09-49e7-b2d7-954e14fa172f",
+      "name": "Filter Projects"
+    },
+    {
+      "parameters": {
+        "content": "## Monitoring Ponisha & Karlancer Projects for any niches \nDon't miss any projects with this workflow! this workflow runs every hour and sent you the newest project or projects so you can approach sooner thtan the others. \n\n**How to Setup:**\n1. input your bot credential and your telegram id \n2. input your niche on set node \n3. enjoy being update on Projects! \n\n\n**Developer: Saeed Khorsandi**\n[Linkedin](https://www.linkedin.com/in/saeedkhorsandi0) | [Telegram](https://t.me/saeedkhorsandi5)",
+        "height": 320,
+        "width": 416,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -864,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "ddd652a1-ea7a-460f-8033-23d7af06d9d2",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger6": {
+      "main": [
+        [
+          {
+            "node": "Time (use for filtering)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Ponisha Projects": {
+      "main": [
+        [
+          {
+            "node": "Filter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript13": {
+      "main": [
+        [
+          {
+            "node": "Filter Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger5": {
+      "main": [
+        [
+          {
+            "node": "Time (use for filtering)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message6": {
+      "main": [
+        []
+      ]
+    },
+    "Filter": {
+      "main": [
+        [
+          {
+            "node": "Send a text message6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niche (Ponisha)": {
+      "main": [
+        [
+          {
+            "node": "Ponisha Search Url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niche (Karlancer)": {
+      "main": [
+        [
+          {
+            "node": "Karlancer Serach Url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ponisha Search Url": {
+      "main": [
+        [
+          {
+            "node": "Ponisha Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Karlancer Serach Url": {
+      "main": [
+        [
+          {
+            "node": "Karlancer Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Time (use for filtering)": {
+      "main": [
+        [
+          {
+            "node": "Niche (Ponisha)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Time (use for filtering)1": {
+      "main": [
+        [
+          {
+            "node": "Niche (Karlancer)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ponisha Scrape": {
+      "main": [
+        [
+          {
+            "node": "Parse Ponisha Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Karlancer Scrape": {
+      "main": [
+        [
+          {
+            "node": "Extract Project",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Project": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Projects": {
+      "main": [
+        [
+          {
+            "node": "Send a text message4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9c94483d-d6ce-4f03-99f0-9e75827e4959",
+  "meta": {
+    "instanceId": "5495d083d01395f041afb1afe1ca00f84be999cea3c1c434a24059f7c8c50a82"
+  },
+  "id": "GbDJ2Y0nIbmjbYwv",
+  "tags": []
+}
