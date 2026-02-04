@@ -1,5 +1,4 @@
 {
-  "name": "Ponisha & Karlanser Monitoring",
   "nodes": [
     {
       "parameters": {
@@ -22,7 +21,7 @@
     },
     {
       "parameters": {
-        "chatId": "=1414522812",
+        "chatId": "=",
         "text": "=🚨 پروژه جدید n8n اومد!\n\n📌 {{$json.title}}\n\n📝 {{$json.description}}\n\n💰 {{$json.budget}}  \n🗓 منتشر شده: {{$json.published}}  \n📍 منبع: {{$json.source}}\n",
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {
@@ -56,8 +55,8 @@
       "webhookId": "73c7a822-a45f-49af-96bf-9fb9440bdcb7",
       "credentials": {
         "telegramApi": {
-          "id": "NZIjA7DArBJocQYF",
-          "name": "Telegram account 4"
+          "id": "5yKfUMiB3U6IBB57",
+          "name": "Telegram account 7"
         }
       }
     },
@@ -105,7 +104,7 @@
     },
     {
       "parameters": {
-        "chatId": "=1414522812",
+        "chatId": "=",
         "text": "=🚨 پروژه جدید n8n اومد!\n\n📌 {{$json.title}}\n\n📝 {{$json.description}}\n\n💰 {{$json.budget}}  \n⏰ مدت تحویل: {{$json.duration}}  \n🗓 منتشر شده: {{$json.published}}  \n📍 منبع: {{$json.source}}\n",
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {
@@ -140,8 +139,8 @@
       "webhookId": "73c7a822-a45f-49af-96bf-9fb9440bdcb7",
       "credentials": {
         "telegramApi": {
-          "id": "NZIjA7DArBJocQYF",
-          "name": "Telegram account 4"
+          "id": "5yKfUMiB3U6IBB57",
+          "name": "Telegram account 7"
         }
       }
     },
@@ -430,7 +429,6 @@
       "name": "Sticky Note"
     }
   ],
-  "pinData": {},
   "connections": {
     "Schedule Trigger6": {
       "main": [
@@ -441,6 +439,11 @@
             "index": 0
           }
         ]
+      ]
+    },
+    "Send a text message6": {
+      "main": [
+        []
       ]
     },
     "Parse Ponisha Projects": {
@@ -476,38 +479,11 @@
         ]
       ]
     },
-    "Send a text message6": {
-      "main": [
-        []
-      ]
-    },
     "Filter": {
       "main": [
         [
           {
             "node": "Send a text message6",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Niche (Ponisha)": {
-      "main": [
-        [
-          {
-            "node": "Ponisha Search Url",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Niche (Karlancer)": {
-      "main": [
-        [
-          {
-            "node": "Karlancer Serach Url",
             "type": "main",
             "index": 0
           }
@@ -530,6 +506,28 @@
         [
           {
             "node": "Karlancer Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niche (Ponisha)": {
+      "main": [
+        [
+          {
+            "node": "Ponisha Search Url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Niche (Karlancer)": {
+      "main": [
+        [
+          {
+            "node": "Karlancer Serach Url",
             "type": "main",
             "index": 0
           }
@@ -603,14 +601,8 @@
       ]
     }
   },
-  "active": true,
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "versionId": "9c94483d-d6ce-4f03-99f0-9e75827e4959",
+  "pinData": {},
   "meta": {
-    "instanceId": "5495d083d01395f041afb1afe1ca00f84be999cea3c1c434a24059f7c8c50a82"
-  },
-  "id": "GbDJ2Y0nIbmjbYwv",
-  "tags": []
+    "instanceId": "ca79995c80014e28b19df5474a7bbd990ef38393d7d5543052c576b0912e4304"
+  }
 }
